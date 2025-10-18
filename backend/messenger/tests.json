@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Get chats list",
+      "method": "GET",
+      "path": "/",
+      "headers": {
+        "X-Auth-Token": "test-token"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "chats": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get contacts",
+      "method": "GET",
+      "path": "/?action=contacts",
+      "headers": {
+        "X-Auth-Token": "test-token"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "contacts": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

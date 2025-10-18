@@ -1,7 +1,7 @@
 """
-Business: User authentication - registration, login, JWT token generation
-Args: event with httpMethod, body (username, email, password)
-Returns: HTTP response with JWT token or error
+Business: VneChat authentication - registration, login, profile management
+Args: event with httpMethod, body (username, email, password, first_name, last_name)
+Returns: HTTP response with JWT token and user profile or error
 """
 import json
 import os
@@ -11,9 +11,9 @@ import jwt
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'wowchat-secret-key-change-in-production')
+JWT_SECRET = os.environ.get('JWT_SECRET', 'vnechat-secret-key-change-in-production')
 JWT_ALGORITHM = 'HS256'
-JWT_EXPIRATION_HOURS = 24
+JWT_EXPIRATION_HOURS = 24 * 7
 
 def get_db_connection():
     """Create database connection using simple query protocol"""
@@ -72,14 +72,23 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # REGISTRATION
         if action == 'register':
             username = body_data.get('username', '').strip()
-            email = body_data.get('email', '').strip()
+            email = body_data.get('email', '').strip().lower()
             password = body_data.get('password', '')
+            first_name = body_data.get('first_name', '').strip()
+            last_name = body_data.get('last_name', '').strip()
             
-            if not username or not email or not password:
+            if not username or not email or not password or not first_name or not last_name:
                 return {
                     'statusCode': 400,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'Username, email and password are required'})
+                    'body': json.dumps({'error': 'All fields are required'})
+                }
+            
+            if len(password) < 8:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Password must be at least 8 characters'})
                 }
             
             # Check if user exists
@@ -94,8 +103,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Create user
             password_hash = hash_password(password)
             cur.execute(
-                "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id, username",
-                (username, email, password_hash)
+                """INSERT INTO users (username, email, password_hash, first_name, last_name, online) 
+                   VALUES (%s, %s, %s, %s, %s, true) 
+                   RETURNING id, username, first_name, last_name, email, avatar_url, status""",
+                (username, email, password_hash, first_name, last_name)
             )
             user = cur.fetchone()
             conn.commit()
@@ -107,13 +118,21 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({
                     'token': token,
-                    'user': {'id': user[0], 'username': user[1]}
+                    'user': {
+                        'id': user[0],
+                        'username': user[1],
+                        'first_name': user[2],
+                        'last_name': user[3],
+                        'email': user[4],
+                        'avatar_url': user[5],
+                        'status': user[6]
+                    }
                 })
             }
         
         # LOGIN
         elif action == 'login':
-            username_or_email = body_data.get('username', '').strip()
+            username_or_email = body_data.get('username', '').strip().lower()
             password = body_data.get('password', '')
             
             if not username_or_email or not password:
@@ -125,7 +144,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             # Find user
             cur.execute(
-                "SELECT id, username, password_hash FROM users WHERE username = %s OR email = %s",
+                """SELECT id, username, password_hash, first_name, last_name, email, avatar_url, status 
+                   FROM users WHERE LOWER(username) = %s OR LOWER(email) = %s""",
                 (username_or_email, username_or_email)
             )
             user = cur.fetchone()
@@ -137,6 +157,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'body': json.dumps({'error': 'Invalid credentials'})
                 }
             
+            # Update user online status
+            cur.execute("UPDATE users SET online = true, last_seen = CURRENT_TIMESTAMP WHERE id = %s", (user[0],))
+            conn.commit()
+            
             token = generate_token(user[0], user[1])
             
             return {
@@ -144,7 +168,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({
                     'token': token,
-                    'user': {'id': user[0], 'username': user[1]}
+                    'user': {
+                        'id': user[0],
+                        'username': user[1],
+                        'first_name': user[3],
+                        'last_name': user[4],
+                        'email': user[5],
+                        'avatar_url': user[6],
+                        'status': user[7]
+                    }
                 })
             }
         

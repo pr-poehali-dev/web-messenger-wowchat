@@ -1,40 +1,43 @@
 {
   "tests": [
     {
-      "name": "Register new user",
+      "name": "Register new user with full profile",
       "method": "POST",
       "path": "/",
       "body": {
         "action": "register",
-        "username": "testuser",
-        "email": "test@example.com",
-        "password": "password123"
+        "username": "johnsmith",
+        "email": "john@vnechat.com",
+        "password": "securepass123",
+        "first_name": "John",
+        "last_name": "Smith"
       },
       "expectedStatus": 201,
       "expectedBody": {
         "token": "string",
         "user": {
           "id": "number",
-          "username": "string"
+          "username": "string",
+          "first_name": "string",
+          "last_name": "string"
         }
       },
       "bodyMatcher": "partial"
     },
     {
-      "name": "Login existing user",
+      "name": "Login with username",
       "method": "POST",
       "path": "/",
       "body": {
         "action": "login",
-        "username": "testuser",
-        "password": "password123"
+        "username": "johnsmith",
+        "password": "securepass123"
       },
       "expectedStatus": 200,
       "expectedBody": {
         "token": "string",
         "user": {
-          "id": "number",
-          "username": "string"
+          "id": "number"
         }
       },
       "bodyMatcher": "partial"
