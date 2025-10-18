@@ -67,6 +67,7 @@ const Index = () => {
   const [callState, setCallState] = useState<CallState>({ active: false, type: null, incoming: false });
   const [newContactUsername, setNewContactUsername] = useState('');
   const [showAddContact, setShowAddContact] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const { toast } = useToast();
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -100,6 +101,7 @@ const Index = () => {
   useEffect(() => {
     if (selectedChat) {
       loadMessages();
+      setIsMobileMenuOpen(false);
     }
   }, [selectedChat]);
 
@@ -125,12 +127,12 @@ const Index = () => {
         setCurrentUser(data.user);
         localStorage.setItem('vnechat_token', data.token);
         localStorage.setItem('vnechat_user', JSON.stringify(data.user));
-        toast({ title: authMode === 'login' ? 'Welcome back!' : 'Account created!' });
+        toast({ title: authMode === 'login' ? 'Добро пожаловать!' : 'Аккаунт создан!' });
       } else {
-        toast({ title: 'Error', description: data.error, variant: 'destructive' });
+        toast({ title: 'Ошибка', description: data.error, variant: 'destructive' });
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Connection failed', variant: 'destructive' });
+      toast({ title: 'Ошибка', description: 'Не удалось подключиться', variant: 'destructive' });
     }
   };
 
@@ -201,7 +203,7 @@ const Index = () => {
         loadChats();
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
+      toast({ title: 'Ошибка', description: 'Не удалось отправить сообщение', variant: 'destructive' });
     }
   };
 
@@ -227,7 +229,7 @@ const Index = () => {
         setActiveTab('chats');
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to create chat', variant: 'destructive' });
+      toast({ title: 'Ошибка', description: 'Не удалось создать чат', variant: 'destructive' });
     }
   };
 
@@ -247,16 +249,16 @@ const Index = () => {
       });
 
       if (response.ok) {
-        toast({ title: 'Success', description: 'Contact added!' });
+        toast({ title: 'Успешно', description: 'Контакт добавлен!' });
         setNewContactUsername('');
         setShowAddContact(false);
         loadContacts();
       } else {
         const data = await response.json();
-        toast({ title: 'Error', description: data.error, variant: 'destructive' });
+        toast({ title: 'Ошибка', description: data.error, variant: 'destructive' });
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to add contact', variant: 'destructive' });
+      toast({ title: 'Ошибка', description: 'Не удалось добавить контакт', variant: 'destructive' });
     }
   };
 
@@ -279,9 +281,12 @@ const Index = () => {
         localVideoRef.current.srcObject = stream;
       }
 
-      toast({ title: 'Calling...', description: `${type === 'video' ? 'Video' : 'Audio'} call to ${user.first_name}` });
+      toast({ 
+        title: 'Звоним...', 
+        description: `${type === 'video' ? 'Видеозвонок' : 'Аудиозвонок'} ${user.first_name}` 
+      });
     } catch (error) {
-      toast({ title: 'Error', description: 'Cannot access camera/microphone', variant: 'destructive' });
+      toast({ title: 'Ошибка', description: 'Нет доступа к камере/микрофону', variant: 'destructive' });
     }
   };
 
@@ -309,10 +314,10 @@ const Index = () => {
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMins < 1) return 'now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-    return date.toLocaleDateString();
+    if (diffMins < 1) return 'сейчас';
+    if (diffMins < 60) return `${diffMins} мин`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} ч`;
+    return date.toLocaleDateString('ru-RU');
   };
 
   const getInitials = (user?: User) => {
@@ -322,35 +327,35 @@ const Index = () => {
 
   if (!token || !currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5">
-        <Card className="w-full max-w-md p-8 animate-scale-in">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-              <Icon name="Video" size={32} className="text-white" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+        <Card className="w-full max-w-md p-6 md:p-8 animate-scale-in">
+          <div className="text-center mb-6 md:mb-8">
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+              <Icon name="Video" size={28} className="text-white md:w-8 md:h-8" />
             </div>
-            <h1 className="text-3xl font-bold">VneChat</h1>
-            <p className="text-muted-foreground mt-2">Connect with video & audio calls</p>
+            <h1 className="text-2xl md:text-3xl font-bold">VneChat</h1>
+            <p className="text-muted-foreground mt-2 text-sm md:text-base">Видео и аудио звонки</p>
           </div>
 
-          <Tabs value={authMode} onValueChange={(v) => setAuthMode(v as 'login' | 'register')} className="mb-6">
+          <Tabs value={authMode} onValueChange={(v) => setAuthMode(v as 'login' | 'register')} className="mb-4 md:mb-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              <TabsTrigger value="login">Вход</TabsTrigger>
+              <TabsTrigger value="register">Регистрация</TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-3 md:space-y-4">
             {authMode === 'register' && (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
                   <Input
-                    placeholder="First name"
+                    placeholder="Имя"
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                     required
                   />
                   <Input
-                    placeholder="Last name"
+                    placeholder="Фамилия"
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                     required
@@ -366,13 +371,13 @@ const Index = () => {
               </>
             )}
             <Input
-              placeholder="Username"
+              placeholder="Имя пользователя"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
             />
             <Input
-              placeholder="Password"
+              placeholder="Пароль"
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -380,7 +385,7 @@ const Index = () => {
               minLength={8}
             />
             <Button type="submit" className="w-full">
-              {authMode === 'login' ? 'Login' : 'Create Account'}
+              {authMode === 'login' ? 'Войти' : 'Создать аккаунт'}
             </Button>
           </form>
         </Card>
@@ -390,74 +395,118 @@ const Index = () => {
 
   return (
     <div className="h-screen flex overflow-hidden bg-background">
-      {/* Left Sidebar */}
-      <div className="w-80 border-r flex flex-col bg-card">
-        {/* User Header */}
-        <div className="p-4 border-b flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={currentUser.avatar_url} />
-              <AvatarFallback className="bg-primary text-white">{getInitials(currentUser)}</AvatarFallback>
+      {/* Mobile Header - Показывается только на мобильных когда выбран чат */}
+      {selectedChat && (
+        <div className="md:hidden fixed top-0 left-0 right-0 z-20 p-3 border-b flex items-center justify-between bg-card">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setSelectedChat(null)}
+            className="h-9 w-9"
+          >
+            <Icon name="ArrowLeft" size={20} />
+          </Button>
+          <div className="flex items-center gap-2 flex-1 mx-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={selectedChat.other_user?.avatar_url} />
+              <AvatarFallback className="bg-primary/20 text-xs">{getInitials(selectedChat.other_user)}</AvatarFallback>
             </Avatar>
-            <div>
-              <p className="font-semibold">{currentUser.first_name} {currentUser.last_name}</p>
-              <p className="text-xs text-muted-foreground">{currentUser.status || 'Available'}</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate">{selectedChat.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {selectedChat.other_user?.online ? 'Онлайн' : 'Оффлайн'}
+              </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <Icon name="LogOut" size={20} />
+          <div className="flex gap-1">
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={() => startCall(selectedChat.other_user!, 'audio')}
+              className="h-9 w-9"
+            >
+              <Icon name="Phone" size={18} />
+            </Button>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={() => startCall(selectedChat.other_user!, 'video')}
+              className="h-9 w-9"
+            >
+              <Icon name="Video" size={18} />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Left Sidebar - Скрывается на мобильных когда выбран чат */}
+      <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r flex-col bg-card`}>
+        {/* User Header */}
+        <div className="p-3 md:p-4 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+            <Avatar className="h-9 w-9 md:h-10 md:w-10">
+              <AvatarImage src={currentUser.avatar_url} />
+              <AvatarFallback className="bg-primary text-white text-sm">{getInitials(currentUser)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm md:text-base truncate">{currentUser.first_name} {currentUser.last_name}</p>
+              <p className="text-xs text-muted-foreground truncate">{currentUser.status || 'Доступен'}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="h-9 w-9 flex-shrink-0">
+            <Icon name="LogOut" size={18} />
           </Button>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b">
+        <div className="p-3 md:p-4 border-b">
           <div className="relative">
-            <Icon name="Search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-10" />
+            <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Поиск..." className="pl-9 h-9 text-sm" />
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="chats">Chats</TabsTrigger>
-            <TabsTrigger value="contacts">Contacts</TabsTrigger>
-            <TabsTrigger value="calls">Calls</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3 m-0 h-10">
+            <TabsTrigger value="chats" className="text-xs md:text-sm">Чаты</TabsTrigger>
+            <TabsTrigger value="contacts" className="text-xs md:text-sm">Контакты</TabsTrigger>
+            <TabsTrigger value="calls" className="text-xs md:text-sm">Звонки</TabsTrigger>
           </TabsList>
 
           {/* Chats List */}
           {activeTab === 'chats' && (
             <ScrollArea className="flex-1">
               {chats.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  <Icon name="MessageCircle" size={48} className="mx-auto mb-2 opacity-50" />
-                  <p>No chats yet</p>
+                <div className="p-6 md:p-8 text-center text-muted-foreground">
+                  <Icon name="MessageCircle" size={40} className="mx-auto mb-2 opacity-50 md:w-12 md:h-12" />
+                  <p className="text-sm md:text-base">Нет чатов</p>
                 </div>
               ) : (
                 chats.map((chat) => (
                   <div
                     key={chat.id}
                     onClick={() => setSelectedChat(chat)}
-                    className={`p-4 border-b cursor-pointer hover:bg-accent transition-colors ${
+                    className={`p-3 md:p-4 border-b cursor-pointer hover:bg-accent transition-colors active:bg-accent ${
                       selectedChat?.id === chat.id ? 'bg-accent' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar>
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <Avatar className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0">
                         <AvatarImage src={chat.other_user?.avatar_url} />
                         <AvatarFallback className="bg-primary/20">{getInitials(chat.other_user)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold truncate">{chat.name}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-semibold truncate text-sm md:text-base">{chat.name}</p>
                           {chat.last_message_time && (
-                            <span className="text-xs text-muted-foreground">{formatTime(chat.last_message_time)}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">{formatTime(chat.last_message_time)}</span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">{chat.last_message || 'No messages yet'}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground truncate">{chat.last_message || 'Нет сообщений'}</p>
                       </div>
                       {chat.other_user?.online && (
-                        <div className="w-2 h-2 rounded-full bg-success" />
+                        <div className="w-2 h-2 rounded-full bg-success flex-shrink-0" />
                       )}
                     </div>
                   </div>
@@ -469,33 +518,33 @@ const Index = () => {
           {/* Contacts List */}
           {activeTab === 'contacts' && (
             <div className="flex-1 flex flex-col">
-              <div className="p-4 border-b">
-                <Button onClick={() => setShowAddContact(true)} className="w-full">
-                  <Icon name="UserPlus" size={18} className="mr-2" />
-                  Add Contact
+              <div className="p-3 md:p-4 border-b">
+                <Button onClick={() => setShowAddContact(true)} className="w-full h-9 text-sm">
+                  <Icon name="UserPlus" size={16} className="mr-2" />
+                  Добавить контакт
                 </Button>
               </div>
               <ScrollArea className="flex-1">
                 {contacts.map((contact) => (
-                  <div key={contact.id} className="p-4 border-b hover:bg-accent cursor-pointer group">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
+                  <div key={contact.id} className="p-3 md:p-4 border-b hover:bg-accent active:bg-accent cursor-pointer group">
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <Avatar className="h-10 w-10 md:h-12 md:w-12 flex-shrink-0">
                         <AvatarImage src={contact.avatar_url} />
                         <AvatarFallback className="bg-primary/20">{getInitials(contact)}</AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
-                        <p className="font-semibold">{contact.first_name} {contact.last_name}</p>
-                        <p className="text-sm text-muted-foreground">@{contact.username}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm md:text-base truncate">{contact.first_name} {contact.last_name}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground truncate">@{contact.username}</p>
                       </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="icon" variant="ghost" onClick={() => createChat(contact.id)}>
-                          <Icon name="MessageCircle" size={18} />
+                      <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <Button size="icon" variant="ghost" onClick={() => createChat(contact.id)} className="h-8 w-8">
+                          <Icon name="MessageCircle" size={16} />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => startCall(contact, 'audio')}>
-                          <Icon name="Phone" size={18} />
+                        <Button size="icon" variant="ghost" onClick={() => startCall(contact, 'audio')} className="h-8 w-8">
+                          <Icon name="Phone" size={16} />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => startCall(contact, 'video')}>
-                          <Icon name="Video" size={18} />
+                        <Button size="icon" variant="ghost" onClick={() => startCall(contact, 'video')} className="h-8 w-8">
+                          <Icon name="Video" size={16} />
                         </Button>
                       </div>
                     </div>
@@ -508,9 +557,9 @@ const Index = () => {
           {/* Calls Tab */}
           {activeTab === 'calls' && (
             <ScrollArea className="flex-1">
-              <div className="p-8 text-center text-muted-foreground">
-                <Icon name="Phone" size={48} className="mx-auto mb-2 opacity-50" />
-                <p>No call history yet</p>
+              <div className="p-6 md:p-8 text-center text-muted-foreground">
+                <Icon name="Phone" size={40} className="mx-auto mb-2 opacity-50 md:w-12 md:h-12" />
+                <p className="text-sm md:text-base">Нет истории звонков</p>
               </div>
             </ScrollArea>
           )}
@@ -518,11 +567,11 @@ const Index = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className={`${selectedChat ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
         {selectedChat ? (
           <>
-            {/* Chat Header */}
-            <div className="p-4 border-b flex items-center justify-between bg-card">
+            {/* Desktop Chat Header */}
+            <div className="hidden md:flex p-4 border-b items-center justify-between bg-card">
               <div className="flex items-center gap-3">
                 <Avatar>
                   <AvatarImage src={selectedChat.other_user?.avatar_url} />
@@ -531,7 +580,7 @@ const Index = () => {
                 <div>
                   <p className="font-semibold">{selectedChat.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {selectedChat.other_user?.online ? 'Online' : 'Offline'}
+                    {selectedChat.other_user?.online ? 'Онлайн' : 'Оффлайн'}
                   </p>
                 </div>
               </div>
@@ -546,22 +595,22 @@ const Index = () => {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 p-3 md:p-4 mt-14 md:mt-0">
+              <div className="space-y-3 md:space-y-4">
                 {messages.map((msg) => {
                   const isOwn = msg.sender_id === currentUser.id;
                   return (
                     <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                      <div className={`max-w-md ${isOwn ? 'order-2' : 'order-1'}`}>
+                      <div className={`max-w-[85%] md:max-w-md ${isOwn ? 'order-2' : 'order-1'}`}>
                         <div
-                          className={`rounded-2xl px-4 py-2 ${
+                          className={`rounded-2xl px-3 py-2 md:px-4 md:py-2 ${
                             isOwn ? 'bg-primary text-white' : 'bg-accent'
                           }`}
                         >
                           {!isOwn && (
                             <p className="text-xs font-semibold mb-1">{msg.sender.first_name}</p>
                           )}
-                          <p>{msg.text}</p>
+                          <p className="text-sm md:text-base break-words">{msg.text}</p>
                           <p className={`text-xs mt-1 ${isOwn ? 'text-white/70' : 'text-muted-foreground'}`}>
                             {formatTime(msg.timestamp)}
                           </p>
@@ -575,31 +624,28 @@ const Index = () => {
             </ScrollArea>
 
             {/* Message Input */}
-            <form onSubmit={sendMessage} className="p-4 border-t bg-card">
+            <form onSubmit={sendMessage} className="p-3 md:p-4 border-t bg-card">
               <div className="flex gap-2">
-                <Button type="button" size="icon" variant="ghost">
-                  <Icon name="Paperclip" size={20} />
-                </Button>
-                <Button type="button" size="icon" variant="ghost">
-                  <Icon name="Smile" size={20} />
+                <Button type="button" size="icon" variant="ghost" className="h-9 w-9 flex-shrink-0">
+                  <Icon name="Paperclip" size={18} />
                 </Button>
                 <Input
-                  placeholder="Type a message..."
+                  placeholder="Введите сообщение..."
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 h-9 text-sm"
                 />
-                <Button type="submit" size="icon">
-                  <Icon name="Send" size={20} />
+                <Button type="submit" size="icon" className="h-9 w-9 flex-shrink-0">
+                  <Icon name="Send" size={18} />
                 </Button>
               </div>
             </form>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <div className="flex-1 flex items-center justify-center text-muted-foreground p-4">
             <div className="text-center">
-              <Icon name="MessageSquare" size={64} className="mx-auto mb-4 opacity-50" />
-              <p className="text-lg">Select a chat to start messaging</p>
+              <Icon name="MessageSquare" size={48} className="mx-auto mb-4 opacity-50 md:w-16 md:h-16" />
+              <p className="text-sm md:text-lg">Выберите чат для начала общения</p>
             </div>
           </div>
         )}
@@ -607,18 +653,18 @@ const Index = () => {
 
       {/* Add Contact Dialog */}
       <Dialog open={showAddContact} onOpenChange={setShowAddContact}>
-        <DialogContent>
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Contact</DialogTitle>
-            <DialogDescription>Enter username to add as contact</DialogDescription>
+            <DialogTitle>Добавить контакт</DialogTitle>
+            <DialogDescription>Введите имя пользователя</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input
-              placeholder="Username"
+              placeholder="Имя пользователя"
               value={newContactUsername}
               onChange={(e) => setNewContactUsername(e.target.value)}
             />
-            <Button onClick={addContact} className="w-full">Add Contact</Button>
+            <Button onClick={addContact} className="w-full">Добавить</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -626,7 +672,7 @@ const Index = () => {
       {/* Video Call Dialog */}
       {callState.active && (
         <Dialog open={callState.active} onOpenChange={() => endCall()}>
-          <DialogContent className="max-w-4xl h-[600px] p-0">
+          <DialogContent className="w-[95vw] h-[85vh] md:max-w-4xl md:h-[600px] p-0">
             <div className="relative w-full h-full bg-black rounded-lg overflow-hidden">
               {callState.type === 'video' && (
                 <>
@@ -641,40 +687,40 @@ const Index = () => {
                     autoPlay
                     playsInline
                     muted
-                    className="absolute bottom-4 right-4 w-48 h-36 object-cover rounded-lg border-2 border-white"
+                    className="absolute bottom-4 right-4 w-24 h-32 md:w-48 md:h-36 object-cover rounded-lg border-2 border-white"
                   />
                 </>
               )}
               {callState.type === 'audio' && (
                 <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <Avatar className="w-32 h-32 mx-auto mb-4">
+                  <div className="text-center text-white px-4">
+                    <Avatar className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-4">
                       <AvatarImage src={callState.otherUser?.avatar_url} />
-                      <AvatarFallback className="text-4xl">{getInitials(callState.otherUser)}</AvatarFallback>
+                      <AvatarFallback className="text-2xl md:text-4xl">{getInitials(callState.otherUser)}</AvatarFallback>
                     </Avatar>
-                    <p className="text-2xl font-semibold mb-2">
+                    <p className="text-xl md:text-2xl font-semibold mb-2">
                       {callState.otherUser?.first_name} {callState.otherUser?.last_name}
                     </p>
-                    <p className="text-muted-foreground">Audio call in progress...</p>
+                    <p className="text-sm md:text-base text-muted-foreground">Аудиозвонок...</p>
                   </div>
                 </div>
               )}
               
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4">
-                <Button size="icon" variant="secondary" className="h-14 w-14 rounded-full">
-                  <Icon name="Mic" size={24} />
+              <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-3 md:gap-4">
+                <Button size="icon" variant="secondary" className="h-12 w-12 md:h-14 md:w-14 rounded-full">
+                  <Icon name="Mic" size={20} className="md:w-6 md:h-6" />
                 </Button>
                 {callState.type === 'video' && (
-                  <Button size="icon" variant="secondary" className="h-14 w-14 rounded-full">
-                    <Icon name="Video" size={24} />
+                  <Button size="icon" variant="secondary" className="h-12 w-12 md:h-14 md:w-14 rounded-full">
+                    <Icon name="Video" size={20} className="md:w-6 md:h-6" />
                   </Button>
                 )}
                 <Button
                   size="icon"
                   onClick={endCall}
-                  className="h-14 w-14 rounded-full bg-danger hover:bg-danger/90"
+                  className="h-12 w-12 md:h-14 md:w-14 rounded-full bg-danger hover:bg-danger/90"
                 >
-                  <Icon name="PhoneOff" size={24} />
+                  <Icon name="PhoneOff" size={20} className="md:w-6 md:h-6" />
                 </Button>
               </div>
             </div>
