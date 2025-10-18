@@ -1,4 +1,6 @@
 {
+  "profile": "https://functions.poehali.dev/08cca8cc-c006-450f-adcb-24ef706d1545",
+  "webrtc-signal": "https://functions.poehali.dev/949639de-58dd-4469-8caa-4bd64a7307ca",
   "auth": "https://functions.poehali.dev/85caea8f-a640-4a5a-96d5-e6848e6f4007",
   "messenger": "https://functions.poehali.dev/5fdc83e2-4a82-43c9-a13e-054fa298259c"
 }

@@ -9,8 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
+import { ProfileEdit } from '@/components/ProfileEdit';
+import { Settings } from '@/components/Settings';
+
 const API_AUTH = 'https://functions.poehali.dev/85caea8f-a640-4a5a-96d5-e6848e6f4007';
 const API_MESSENGER = 'https://functions.poehali.dev/5fdc83e2-4a82-43c9-a13e-054fa298259c';
+const API_WEBRTC = 'https://functions.poehali.dev/949639de-58dd-4469-8caa-4bd64a7307ca';
 
 interface User {
   id: number;
@@ -68,6 +72,9 @@ const Index = () => {
   const [newContactUsername, setNewContactUsername] = useState('');
   const [showAddContact, setShowAddContact] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   
   const { toast } = useToast();
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -262,6 +269,42 @@ const Index = () => {
     }
   };
 
+  const createPeerConnection = () => {
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
+    });
+
+    pc.onicecandidate = async (event) => {
+      if (event.candidate && callState.otherUser) {
+        try {
+          await fetch(API_WEBRTC, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'ice-candidate',
+              from: currentUser!.id.toString(),
+              to: callState.otherUser.id.toString(),
+              candidate: event.candidate.toJSON(),
+            }),
+          });
+        } catch (error) {
+          console.error('Failed to send ICE candidate:', error);
+        }
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    return pc;
+  };
+
   const startCall = async (user: User, type: 'audio' | 'video') => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -281,6 +324,26 @@ const Index = () => {
         localVideoRef.current.srcObject = stream;
       }
 
+      const pc = createPeerConnection();
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      await fetch(API_WEBRTC, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'offer',
+          from: currentUser!.id.toString(),
+          to: user.id.toString(),
+          offer: offer,
+          callType: type,
+        }),
+      });
+
+      setPeerConnection(pc);
+
       toast({ 
         title: 'Звоним...', 
         description: `${type === 'video' ? 'Видеозвонок' : 'Аудиозвонок'} ${user.first_name}` 
@@ -294,7 +357,15 @@ const Index = () => {
     if (callState.stream) {
       callState.stream.getTracks().forEach(track => track.stop());
     }
+    if (peerConnection) {
+      peerConnection.close();
+      setPeerConnection(null);
+    }
     setCallState({ active: false, type: null, incoming: false });
+  };
+
+  const handleUserUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
   };
 
   const handleLogout = () => {
@@ -443,7 +514,7 @@ const Index = () => {
       <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r flex-col bg-card`}>
         {/* User Header */}
         <div className="p-3 md:p-4 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => setShowProfileEdit(true)}>
             <Avatar className="h-9 w-9 md:h-10 md:w-10">
               <AvatarImage src={currentUser.avatar_url} />
               <AvatarFallback className="bg-primary text-white text-sm">{getInitials(currentUser)}</AvatarFallback>
@@ -453,8 +524,8 @@ const Index = () => {
               <p className="text-xs text-muted-foreground truncate">{currentUser.status || 'Доступен'}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="h-9 w-9 flex-shrink-0">
-            <Icon name="LogOut" size={18} />
+          <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} className="h-9 w-9 flex-shrink-0">
+            <Icon name="Settings" size={18} />
           </Button>
         </div>
 
@@ -726,6 +797,29 @@ const Index = () => {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Profile Edit Dialog */}
+      {currentUser && token && (
+        <ProfileEdit
+          open={showProfileEdit}
+          onOpenChange={setShowProfileEdit}
+          user={currentUser}
+          token={token}
+          onUpdate={handleUserUpdate}
+        />
+      )}
+
+      {/* Settings Dialog */}
+      {currentUser && token && (
+        <Settings
+          open={showSettings}
+          onOpenChange={setShowSettings}
+          user={currentUser}
+          token={token}
+          onLogout={handleLogout}
+          onUpdate={handleUserUpdate}
+        />
       )}
     </div>
   );

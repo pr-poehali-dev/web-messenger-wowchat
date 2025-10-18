@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "Get user profile",
+      "method": "GET",
+      "path": "/",
+      "headers": {
+        "X-Auth-Token": "test-token"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "id": "number",
+        "username": "string",
+        "first_name": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Update profile",
+      "method": "PUT",
+      "path": "/",
+      "headers": {
+        "X-Auth-Token": "test-token"
+      },
+      "body": {
+        "action": "update_profile",
+        "first_name": "John",
+        "last_name": "Doe",
+        "status": "Available"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "first_name": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

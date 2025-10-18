@@ -1,0 +1,34 @@
+{
+  "tests": [
+    {
+      "name": "Send WebRTC signal",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "type": "offer",
+        "from": "user1",
+        "to": "user2",
+        "offer": {
+          "type": "offer",
+          "sdp": "test-sdp"
+        },
+        "callType": "video"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get signals for user",
+      "method": "GET",
+      "path": "/?user_id=user2",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "signals": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
